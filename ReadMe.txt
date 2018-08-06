@@ -6,25 +6,21 @@
 
 本文件概要介绍组成 ClassroomAnalysis 应用程序的每个文件的内容。
 
-
-ClassroomAnalysis.vcxproj
-    这是使用应用程序向导生成的 VC++ 项目的主项目文件，其中包含生成该文件的 Visual C++ 的版本信息，以及有关使用应用程序向导选择的平台、配置和项目功能的信息。
-
-ClassroomAnalysis.vcxproj.filters
-    这是使用“应用程序向导”生成的 VC++ 项目筛选器文件。它包含有关项目文件与筛选器之间的关联信息。在 IDE 中，通过这种关联，在特定节点下以分组形式显示具有相似扩展名的文件。例如，“.cpp”文件与“源文件”筛选器关联。
+MotionObjectDetect.h MotionObjectDetect.cpp
+    运动物体检测类，继承该类可以拓展出基于运动检测的不同功能的子类。在这里作为StudentStaticAnalysis类和TeacherTrack类的父类。
+    
+StudentStaticAnalysis.h StudentStaticAnalysis.cpp 
+    学生运动幅度检测和突发事件预警类。继承于MotionObjectDetect类。
+    
+TeacherTrack.h TeacherTrack.cpp
+    老师运动跟踪检测类。继承于MotionObjectDetect类。
 
 ClassroomAnalysis.cpp
-    这是主应用程序源文件。
+    这是主应用程序源文件。用来读取视频文件，并进行图像识别检测。
 
-/////////////////////////////////////////////////////////////////////////////
-其他标准文件:
-
-StdAfx.h, StdAfx.cpp
-    这些文件用于生成名为 ClassroomAnalysis.pch 的预编译头 (PCH) 文件和名为 StdAfx.obj 的预编译类型文件。
 
 /////////////////////////////////////////////////////////////////////////////
 其他注释:
 
-应用程序向导使用“TODO:”注释来指示应添加或自定义的源代码部分。
 
 /////////////////////////////////////////////////////////////////////////////

@@ -22,7 +22,8 @@
 #include "StudentStaticAnalysis.h"
 #include "TeacherTrack.h"
 
-#define VIDEO_WIDTH 1280
+//帧分辨率
+#define VIDEO_WIDTH 1280 
 #define VIDEO_HEIGHT 720
 
 using namespace std;
@@ -30,6 +31,9 @@ cv::Mat gray_frame;
 cv::Mat track_roi;
 boost::recursive_mutex cs;
 cv::Rect track_rect;
+
+//学生检测结果
+student_static_t student_static_result;
 
 //TCP客户端
 WORD wVersion = MAKEWORD(2, 2);
@@ -65,6 +69,7 @@ void classroom_analysis()
 
 	cv::Mat deal_img;
 	cv::Rect rect;
+	student_static_t result;
 	while (true)
 	{
 		{
@@ -76,10 +81,12 @@ void classroom_analysis()
 		//detector2.compute(deal_img, rect);
 
 		//取消注释可以打开学生检测功能
-		detector.compute(deal_img, rect);
+		detector.compute(deal_img, rect, result);
+
 
 		{
 			boost::recursive_mutex::scoped_lock lk(cs);
+			student_static_result = result;
 			track_rect = rect;
 		}
 		if (cv::waitKey(300) == 27)
@@ -100,13 +107,14 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 0;
 	}
 	int frame_count = capture.get(7);
-	capture.set(CV_CAP_PROP_POS_FRAMES, (int)frame_count*0.2);
+	capture.set(CV_CAP_PROP_POS_FRAMES, (int)frame_count*0.9);
 	cv::Mat frame;
 	cv::Mat frame_roi;
 	cv::namedWindow("origin_video", 1);
 
 	boost::thread thread(classroom_analysis);
 	cv::Mat resize_frame;
+	int during_emergency_num = 0;
 	while (true)
 	{
 		if (!capture.read(frame))
@@ -125,6 +133,33 @@ int _tmain(int argc, _TCHAR* argv[])
 			//cv::rectangle(resize_frame, cv::Rect(VIDEO_WIDTH*0.1, VIDEO_HEIGHT * 0.2, VIDEO_WIDTH*0.8, VIDEO_HEIGHT*0.45), cv::Scalar(0, 0, 255), 3);
 			if (track_rect.area() > (resize_frame.size().area()*0.005))
 				cv::rectangle(frame_roi, track_rect, cv::Scalar(255, 0, 0), 2);
+			/////////////////////////////////////////
+			// 在图片上绘制识别学生识别结果
+			std::stringstream Oss;
+			Oss << "Static score : " << student_static_result.score;
+			if (student_static_result.warning_flag)
+			{
+				during_emergency_num = 0;
+				Oss << " Emergency Warning !";
+			}
+			else
+			{
+				if (during_emergency_num < 100)
+				{
+					Oss << " Emergency Warning !";
+					during_emergency_num++;
+				}
+			}
+			int fontFace = CV_FONT_HERSHEY_DUPLEX;
+			double fontScale = 0.8;
+			int fontThickness = 2;
+			cv::Size fontSize = cv::getTextSize("T[]", fontFace, fontScale, fontThickness, 0);
+			cv::Point org;
+			org.x = 1;
+			org.y = fontSize.height;
+			cv::putText(frame_roi, Oss.str(), org, CV_FONT_HERSHEY_DUPLEX, fontScale, CV_RGB(255, 0, 0), fontThickness, 16);
+			//////////////////////////////////////////
+
 		}		
 
 		cv::imshow("origin_video", resize_frame);

@@ -62,7 +62,7 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 		double area = cv::contourArea(contours[i]);
 		if (area > maxArea)
 		{
-			maxArea = area;
+			maxArea = area ;
 			maxContour = contours[i];
 		}
 	}

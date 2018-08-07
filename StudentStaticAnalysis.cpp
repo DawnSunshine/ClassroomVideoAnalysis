@@ -3,12 +3,12 @@
 
 StudentStaticAnalysis::StudentStaticAnalysis() :
 erode_size(5, 5), dilate_size(15, 15),
-static_score(100), image_size(1), contours_size_v(MAX_FRAMES_TO_COMPUTE, -1)
+static_score(100), image_size(1), contours_size_v(MAX_FRAMES_TO_COMPUTE, -1),
+last_static_score(0), warning_sensitivity_(0.5)
 {
 
 	erode_element = cv::getStructuringElement(cv::MORPH_RECT, erode_size);
 	dilate_element = cv::getStructuringElement(cv::MORPH_RECT, dilate_size);
-	track_area_ = cv::Rect(0, 0, 0, 0);
 
 }
 
@@ -17,7 +17,7 @@ StudentStaticAnalysis::~StudentStaticAnalysis()
 
 }
 
-void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect)
+void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect, student_static_t &result)
 {
 	if (0 == frame.rows || 0 == frame.cols)
 		return;
@@ -54,7 +54,7 @@ void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect)
 	*/
 
 	// 寻找最大连通域
-	long contours_size = 0;
+	double contours_size = 0;
 	double maxArea = 0;
 	std::vector<cv::Point> maxContour;
 	for (size_t i = 0; i < contours.size(); i++)
@@ -65,11 +65,16 @@ void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect)
 			maxArea = area;
 			maxContour = contours[i];
 		}
-		contours_size = contours_size + contours[i].size();
+
+		contours_size = contours_size + area;//将所有矩形面积相加
+
 	}
 	contours_size_v.pop_front();
 	contours_size_v.push_back(contours_size);
 	computeScore(contours_size_v);
+	result.score = static_score;
+	result.warning_flag = warning_flag;
+
 	//printf("Student Static Score is %d \n", static_score);
 	// 将轮廓转为矩形框
 	if (maxContour.size() != 0)
@@ -93,10 +98,7 @@ void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect)
 	}
 	cv::imshow("内外轮廓图", dstImage2);*/
 
-	std::cout << t.elapsed() * 1000 << "ms" << std::endl;
-
-	if (track_area_.area() == 0)//判断跟踪区域是否存在
-		return;
+	//std::cout << t.elapsed() * 1000 << "ms" << std::endl;
 
 
 }
@@ -145,16 +147,16 @@ void StudentStaticAnalysis::roiExtract(cv::Mat &src, cv::Mat &dst, std::vector<c
 //	return time_from_epoch.total_milliseconds();
 //}
 
-void StudentStaticAnalysis::computeScore(std::deque<long> &contours)
+void StudentStaticAnalysis::computeScore(const std::deque<double> &contours)
 {
 	int num = contours.size();
 	int effective_num = 0;
-	long sum = 0;
+	double sum = 0;
 	for (int i = 0; i < num; i++)
 	{
 		if (contours[i] > -1)
 		{
-			sum += contours[i];
+			sum = sum + contours[i];
 			effective_num++;
 		}
 	}
@@ -163,10 +165,23 @@ void StudentStaticAnalysis::computeScore(std::deque<long> &contours)
 		sum = sum / effective_num;
 	}
 
-	if (sum < (image_size*0.00001))
+	if (sum < (image_size*0.001))
 		static_score = 0;
 	else
-		static_score = (float)sum / (image_size * 0.0005) * 100;
+		static_score = sum / (image_size*0.05) * 100;//比例值转换为百分数
+
+	if (last_static_score < (100 + 200 * warning_sensitivity_)
+		&& static_score > (100 + 200 * warning_sensitivity_))
+	{
+		printf("\nSuddenly Motion\n\n");
+		warning_flag = true;
+	}
+	else
+	{
+		warning_flag = false;
+	}
+	
+	last_static_score = static_score;
 
 	if (static_score > 100)
 		static_score = 0;

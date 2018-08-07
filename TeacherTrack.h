@@ -43,10 +43,11 @@ public:
 	~TeacherTrack();
 
 public:
+	//执行检测算法
 	void compute(cv::Mat &frame, cv::Rect &rect);
-
+	//设置视频掩码
 	inline void setMask(MASK mask){ mask_ = mask; }
-
+	//设置跟踪区域
 	inline void setTrackArea(cv::Rect area){ track_area_ = area; }
 
 private:
@@ -62,15 +63,21 @@ private:
 	int64_t getCurrentStamp64();
 
 private:
+	//膨胀核大小，用来对核初始化
 	cv::Size dilate_size;
+	//腐蚀核大小，用来对核初始化
 	cv::Size erode_size;
+	//腐蚀核
 	cv::Mat erode_element;
+	//膨胀核
 	cv::Mat dilate_element;
 
 	cv::Rect track_area_;
 	MASK mask_;
 
+
 	TEACHER_STATUS current_tch_status[3];
+
 	TEACHER_STATUS last_tch_status[3];
 	
 	cv::Rect last_active_area;//上一帧检测到的老师活动区域

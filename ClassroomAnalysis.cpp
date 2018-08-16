@@ -1,10 +1,8 @@
 // ClassroomAnalysis.cpp : 定义控制台应用程序的入口点。
 //
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include <stdlib.h>
-#include <WinSock2.h>
-#include <Windows.h>
 #include "json/json.h"
 #include <string>
 #include <sstream>
@@ -38,10 +36,6 @@ cv::Rect student_track_rect;
 detection_student_t student_static_result;
 detection_teacher_t teacher_acitve_result;
 
-//TCP客户端
-WORD wVersion = MAKEWORD(2, 2);
-WSADATA WSAData;
-SOCKET s ;
 
 void classroom_analysis();
 bool init_client_socket();
@@ -311,7 +305,7 @@ void video_read_teacher(std::string path, bool resize_flag, cv::Size resize)
 	capture_teacher.release();
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int main()
 {
 
 	boost::thread thread(classroom_analysis);

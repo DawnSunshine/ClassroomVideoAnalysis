@@ -23,7 +23,7 @@
 //存放每一帧初次识别结果的容器大小
 //该值越大，检测结果抖动越平缓，
 //该值越小，结果抖动越大。
-#define MAX_FRAMES_TO_COMPUTE 20
+#define MAX_FRAMES_TO_COMPUTE 10
 
 //定义掩码类型
 typedef std::vector<cv::Rect> MASK;
@@ -33,7 +33,7 @@ typedef struct
 {
 	double score;//识别结果
 	bool warning_flag;//突发事件警告
-}student_static_t;
+}detection_student_t;
 
 class StudentStaticAnalysis :
 	public MotionObjectDetect
@@ -44,7 +44,7 @@ public:
 
 public:
 	//执行检测算法
-	void compute(cv::Mat &frame, cv::Rect &rect, student_static_t &result);
+	void compute(cv::Mat &frame, cv::Rect &rect, detection_student_t &result);
 	//设置视频掩码
 	inline void setMask(MASK mask){ mask_ = mask; }
 	//设置突发事件警告灵敏度 warning_sensitivity范围0~1

@@ -12,7 +12,7 @@ active_score(0.0), reduction_factor(5.1)
 	current_tch_status[2] = TCH_STAND;
 	current_tch_status[1] = TCH_NULL;
 	current_tch_status[0] = TCH_DOWN_PLATFORM;
-	last_time_stamp_ = getCurrentStamp64();
+
 }
 
 TeacherTrack::~TeacherTrack()
@@ -20,7 +20,7 @@ TeacherTrack::~TeacherTrack()
 
 }
 
-void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
+void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect, detection_teacher_t &status)
 {
 	if (0 == frame.rows || 0 == frame.cols)
 		return;
@@ -30,7 +30,7 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 
 	cv::Mat roi_img;
 	roiExtract(gray, roi_img, mask_);
-	cv::imshow("ROI", roi_img);
+    //cv::imshow("ROI", roi_img);
 
 	boost::timer t;
 	cv::Mat diff;
@@ -62,7 +62,7 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 		double area = cv::contourArea(contours[i]);
 		if (area > maxArea)
 		{
-			maxArea = area ;
+			maxArea = area;
 			maxContour = contours[i];
 		}
 	}
@@ -78,7 +78,7 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 		cv::Scalar color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
 		drawContours(dstImage, contours, i, color, 3, 8, hierarchy);
 	}
-	cv::imshow("仅外轮廓图", dstImage);
+    //cv::imshow("仅外轮廓图", dstImage);
 	/*
 	cv::Mat dstImage2 = cv::Mat::zeros(frame.size(), CV_8UC3);
 	for (int i = 0; i < hierarchy2.size(); i++)
@@ -185,9 +185,15 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 			cv::Point current_center((rect.br().x + rect.tl().x) / 2, (rect.br().y + rect.tl().y) / 2);
 
 			if ((track_area_.br().y - current_center.y ) < (frame.cols*0.03))
+            {
 				current_tch_status[0] = TCH_DOWN_PLATFORM;
+                //status.down_platform_num++;
+            }
 			else
+            {
 				current_tch_status[0] = TCH_UP_PLATFORM;
+               // status.up_platform_num++;
+            }
 
 			distance = sqrt((last_center.x - current_center.x)*(last_center.x - current_center.x) +
 							(last_center.y - current_center.y)*(last_center.y - current_center.y));
@@ -195,9 +201,13 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 			{
 				last_active_area = rect;
 				current_tch_status[2] = TCH_MOVING;
+                //status.moving_num++;
 			}
 			else
+            {
+                //status.stand_num++;
 				current_tch_status[2] = TCH_STAND;
+            }
 
 		}
 		else
@@ -211,7 +221,7 @@ void TeacherTrack::compute(cv::Mat &frame, cv::Rect &rect)
 		current_tch_status[1] = TCH_NULL;
 	}
 
-	statusAnalysis(rect);
+    statusAnalysis(rect, status);
 	memcpy(last_tch_status, current_tch_status, 3 * sizeof(TEACHER_STATUS));
 	//std::cout << t.elapsed() * 1000 << "ms" << std::endl;
 
@@ -260,7 +270,7 @@ int64_t TeacherTrack::getCurrentStamp64()
 	return time_from_epoch.total_milliseconds();
 }
 
-void TeacherTrack::statusAnalysis(cv::Rect &active_area)
+void TeacherTrack::statusAnalysis(cv::Rect &active_area, detection_teacher_t &result)
 {
 	if (last_tch_status[0] == TCH_UP_PLATFORM)
 	{
@@ -274,34 +284,44 @@ void TeacherTrack::statusAnalysis(cv::Rect &active_area)
 					{
 						if (current_tch_status[2] == TCH_MOVING)
 						{
-							active_score += (3 * reduction_factor);//从站立变成移动，则+(2 * reduction_factor)热情度
+                            active_score += (3 * reduction_factor);//从站立变成移动，则+(3 * reduction_factor)热情度
 							COUT("TCH_MOVING");
+							result.status = TCH_MOVING;
+							result.moving_num++;
 							//std::cout << "TCH_MOVING" << std::endl;
 						}
 						else
 						{
-							COUT("KEEP_STAND");
-							active_score += (reduction_factor+0.2 );//如果保持站立，则+(reduction_factor + 1)热情度
+							COUT("KEEP_STAND")
+							result.status = KEEP_STAND;
+							result.stand_num++;
+                            active_score += (reduction_factor+0.2 );//如果保持站立，则+(reduction_factor + 0.2)热情度
 						}
 					}
 					else
 					{
 						if (current_tch_status[2] == TCH_STAND)
 						{
-							active_score += (reduction_factor+0.2 );//从移动变成站立，则+(reduction_factor + 1)热情度
+                            active_score += (reduction_factor+0.2 );//从移动变成站立，则+(reduction_factor + 0.2)热情度
 							COUT("TCH_STAND");
+							result.status = TCH_STAND;
+							result.stand_num++;
 							//std::cout << "TCH_STAND" << std::endl;
 						}
 						else
 						{
 							COUT("KEEP_MOVING");
-							active_score += (2 * reduction_factor);//如果保持移动，则+(1.5 * reduction_factor)热情度
+							result.status = KEEP_MOVING;
+							result.moving_num++;
+                            active_score += (2 * reduction_factor);//如果保持移动，则+(2 * reduction_factor)热情度
 						}
 					}
 				}
 				else
 				{		
-					COUT("TCH_NULL");
+					COUT("TCH_NULL")
+					result.status = TCH_NULL;
+					result.stand_num++;
 					//std::cout << "TCH_DOWN_PLATFORM" << std::endl;
 				}
 			}
@@ -311,27 +331,35 @@ void TeacherTrack::statusAnalysis(cv::Rect &active_area)
 				{
 					active_score += (reduction_factor + 1);//从消失变成出现，则+ (reduction_factor + 1)热度
 					COUT("TCH_OCCUR");
+					result.status = TCH_OCCUR;
 				}
 			}
 		}
 		else
 		{
 			active_score += (2 * reduction_factor);//从上讲台变成下讲台，则+(2 * reduction_factor)热情度
+            //status.down_platform_num++;
 			COUT("TCH_DOWN_PLATFORM");
+			result.status = TCH_DOWN_PLATFORM;
+			result.down_platform_num++;
 			//std::cout << "TCH_NULL" << std::endl;
 		}
-	}
+	}         
 	else
 	{
 		if (current_tch_status[0] == TCH_UP_PLATFORM)
 		{
-			active_score += (reduction_factor);//从下讲台变成上讲台，则+(2 * reduction_factor)热情度
+            active_score += (reduction_factor);//从下讲台变成上讲台，则+(reduction_factor)热情度
 			COUT("TCH_UP_PLATFORM");
+			result.status = TCH_UP_PLATFORM;
+			result.moving_num++;
 			//std::cout << "TCH_UP_PLATFORM" << std::endl;
 		}
 		else
 		{
-			active_score += (reduction_factor-0.2);//如果保持下讲台状态，+reduction_factor热情度
+            active_score += (reduction_factor-0.2);//如果保持下讲台状态，+reduction_factor - 0.2热情度
+			result.status = KEEP_DOWN_PLATFORM;
+			result.down_platform_num++;
 			COUT("KEEP_DOWN_PLATFORM");
 		}
 	}
@@ -341,6 +369,8 @@ void TeacherTrack::statusAnalysis(cv::Rect &active_area)
 		active_score = 100;
 	if (active_score < 0)
 		active_score = 0;
-	std::cout << "active_score:" << active_score << std::endl;
+	result.active_score = active_score;
+
+	//std::cout << "active_score:" << active_score << std::endl;
 
 }

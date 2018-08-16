@@ -1,12 +1,3 @@
-/////////////////////////////////////////////////////////////////////
-// Name: 老师授课热情检测类
-// Autor: 林晓生
-// Date: 2018/7/20
-// Brief: 输入教室老师的图片、掩码区域和讲台区域，进行老师授课热情的计算。
-
-
-/////////////////////////////////////////////////////////////////////
-
 #ifndef TEACHER_TRACK
 #define TEACHER_TRACK
 #include <iostream>
@@ -25,12 +16,26 @@
 typedef enum
 {
 	TCH_DOWN_PLATFORM,
+	KEEP_DOWN_PLATFORM,
 	TCH_UP_PLATFORM,
 	TCH_OCCUR,
 	TCH_NULL,
 	TCH_MOVING,
-	TCH_STAND
+	KEEP_MOVING,
+	TCH_STAND,
+	KEEP_STAND
 }TEACHER_STATUS;
+
+typedef struct
+{
+	double active_score;//讲课热情
+	TEACHER_STATUS status;//老师状态
+	int down_platform_num;//下讲台次数
+	int up_platform_num;//上讲台次数
+	int moving_num;//移动次数
+	int stand_num;//站立次数
+
+}detection_teacher_t;
 
 typedef std::vector<cv::Rect> MASK;
 
@@ -43,11 +48,10 @@ public:
 	~TeacherTrack();
 
 public:
-	//执行检测算法
-	void compute(cv::Mat &frame, cv::Rect &rect);
-	//设置视频掩码
+	void compute(cv::Mat &frame, cv::Rect &rect, detection_teacher_t &result);
+
 	inline void setMask(MASK mask){ mask_ = mask; }
-	//设置跟踪区域
+
 	inline void setTrackArea(cv::Rect area){ track_area_ = area; }
 
 private:
@@ -58,26 +62,20 @@ private:
 	//根据掩码提取ROI
 	void roiExtract(cv::Mat &src, cv::Mat &dst, std::vector<cv::Rect> &mask);
 	//状态分析
-	void statusAnalysis(cv::Rect &active_area);
+	void statusAnalysis(cv::Rect &active_area, detection_teacher_t &status);
 	//获取当前时间戳
 	int64_t getCurrentStamp64();
 
 private:
-	//膨胀核大小，用来对核初始化
 	cv::Size dilate_size;
-	//腐蚀核大小，用来对核初始化
 	cv::Size erode_size;
-	//腐蚀核
 	cv::Mat erode_element;
-	//膨胀核
 	cv::Mat dilate_element;
 
 	cv::Rect track_area_;
 	MASK mask_;
 
-
 	TEACHER_STATUS current_tch_status[3];
-
 	TEACHER_STATUS last_tch_status[3];
 	
 	cv::Rect last_active_area;//上一帧检测到的老师活动区域

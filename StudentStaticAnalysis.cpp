@@ -17,7 +17,7 @@ StudentStaticAnalysis::~StudentStaticAnalysis()
 
 }
 
-void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect, student_static_t &result)
+void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect, detection_student_t &result)
 {
 	if (0 == frame.rows || 0 == frame.cols)
 		return;
@@ -30,17 +30,17 @@ void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect, student_stat
 	cv::Mat roi_img;
 	roiExtract(gray, roi_img, mask_);
 
-	cv::imshow("roi_img", roi_img);
+	//cv::imshow("roi_img", roi_img);
 
 	cv::Mat diff;
 	updataFrame(roi_img, diff);
 
-	cv::imshow("diff_video", diff);
+	//cv::imshow("diff_video", diff);
 
 	cv::Mat pre_img;
 	preprocess(diff, pre_img);
 
-	cv::imshow("pre_img", pre_img);
+	//cv::imshow("pre_img", pre_img);
 
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
@@ -81,14 +81,14 @@ void StudentStaticAnalysis::compute(cv::Mat &frame, cv::Rect &rect, student_stat
 		rect = cv::boundingRect(maxContour);
 	else
 		rect = cv::Rect(0, 0, 0, 0);
-
+	/*
 	cv::Mat dstImage = cv::Mat::zeros(frame.size(), CV_8UC3);
 	for (int i = 0; i < hierarchy.size(); i++)
 	{
 		cv::Scalar color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
 		drawContours(dstImage, contours, i, color, 3, 8, hierarchy);
 	}
-	cv::imshow("仅外轮廓图", dstImage);
+	cv::imshow("仅外轮廓图", dstImage);*/
 	/*
 	cv::Mat dstImage2 = cv::Mat::zeros(frame.size(), CV_8UC3);
 	for (int i = 0; i < hierarchy2.size(); i++)
@@ -173,7 +173,7 @@ void StudentStaticAnalysis::computeScore(const std::deque<double> &contours)
 	if (last_static_score < (100 + 200 * warning_sensitivity_)
 		&& static_score > (100 + 200 * warning_sensitivity_))
 	{
-		printf("\nSuddenly Motion\n\n");
+		//printf("\nSuddenly Motion\n\n");
 		warning_flag = true;
 	}
 	else
@@ -188,7 +188,7 @@ void StudentStaticAnalysis::computeScore(const std::deque<double> &contours)
 	else
 		static_score = 100 - static_score;
 
-	printf("Static Score is %f\n", static_score);
+	//printf("Static Score is %f\n", static_score);
 
 	return;
 }
